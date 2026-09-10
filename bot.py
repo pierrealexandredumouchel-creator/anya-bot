@@ -3,12 +3,12 @@ import socket
 import time
 import sys
 
-SERVER = "irc.libera.chat"      # change si tu veux
+SERVER = "us.undernet.org"      # change si tu veux
 PORT = 6667
 NICK = "Anya"
 IDENT = "anya"
-REALNAME = "AnyaBot"
-CHANNEL = "#tonchannel"         # change ici
+REALNAME = "AnyaBot & girl of alxd"
+CHANNEL = "#montreal"         # change ici
 ZNC_PASS = ""                   # si tu utilises ZNC, mets ton pass ici
 
 def send(sock, msg):

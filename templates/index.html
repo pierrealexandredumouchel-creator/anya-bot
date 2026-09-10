@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Anya Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#0A0A12] text-[#F0F8FF] font-inter">
+  <div class="p-6 text-center">
+    <img src="/static/logo.png" alt="Anya Logo" class="mx-auto w-32 mb-4">
+    <h1 class="text-3xl font-bold text-[#A020F0]">Anya IRC Bot</h1>
+    <p class="mt-2">État du service : <span id="status" class="font-bold"></span></p>
+    <button onclick="restart()" class="mt-4 bg-[#00BFFF] text-black px-4 py-2 rounded">Redémarrer</button>
+    <pre id="logs" class="mt-6 text-left bg-[#0A0A12] p-4 rounded border border-[#A020F0] overflow-auto h-96"></pre>
+  </div>
+  <script>
+    async function refresh() {
+      const res = await fetch('/logs');
+      const data = await res.json();
+      document.getElementById('logs').textContent = data.log;
+    }
+    async function restart() {
+      await fetch('/restart');
+      refresh();
+    }
+    refresh();
+    setInterval(refresh, 5000);
+  </script>
+</body>
+</html>
