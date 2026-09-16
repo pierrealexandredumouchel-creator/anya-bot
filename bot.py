@@ -1,73 +1,140 @@
-#!/usr/bin/env python3
 import socket
 import time
-import sys
+import sqlite3
+import random
 
-SERVER = "us.undernet.org"      # change si tu veux
+SERVER = "irc.undernet.org"
 PORT = 6667
 NICK = "Anya"
-IDENT = "anya"
-REALNAME = "AnyaBot & girl of alxd"
-CHANNEL = "#montreal"         # change ici
-ZNC_PASS = ""                   # si tu utilises ZNC, mets ton pass ici
+CHANNELS = ["#montreal", "#kodi"]
+
+# --- DB SETUP ---
+db = sqlite3.connect("anya.db", check_same_thread=False)
+cur = db.cursor()
+
+cur.execute("""
+CREATE TABLE IF NOT EXISTS memory (
+    user TEXT,
+    message TEXT,
+    ts INTEGER
+)
+""")
+
+cur.execute("""
+CREATE TABLE IF NOT EXISTS flood (
+    user TEXT,
+    last_ts INTEGER,
+    count INTEGER
+)
+""")
+
+db.commit()
+
+def log_message(user, msg):
+    cur.execute("INSERT INTO memory (user, message, ts) VALUES (?, ?, ?)",
+                (user, msg, int(time.time())))
+    db.commit()
+
+def anti_flood(user):
+    now = int(time.time())
+    cur.execute("SELECT last_ts, count FROM flood WHERE user=?", (user,))
+    row = cur.fetchone()
+
+    if row is None:
+        cur.execute("INSERT INTO flood VALUES (?, ?, ?)", (user, now, 1))
+        db.commit()
+        return False
+
+    last_ts, count = row
+
+    if now - last_ts > 5:
+        cur.execute("UPDATE flood SET last_ts=?, count=? WHERE user=?",
+                    (now, 1, user))
+        db.commit()
+        return False
+
+    if count > 5:
+        return True
+
+    cur.execute("UPDATE flood SET last_ts=?, count=? WHERE user=?",
+                (now, count + 1, user))
+    db.commit()
+    return False
 
 def send(sock, msg):
     sock.send((msg + "\r\n").encode("utf-8"))
-    print(">>", msg)
 
 def connect():
-    while True:
-        try:
-            print("Connecting to IRC...")
-            sock = socket.socket()
-            sock.connect((SERVER, PORT))
-
-            if ZNC_PASS:
-                send(sock, f"PASS {ZNC_PASS}")
-
-            send(sock, f"NICK {NICK}")
-            send(sock, f"USER {IDENT} 0 * :{REALNAME}")
-
-            return sock
-        except Exception as e:
-            print("Connection failed:", e)
-            time.sleep(5)
+    sock = socket.socket()
+    sock.connect((SERVER, PORT))
+    send(sock, f"NICK {NICK}")
+    send(sock, f"USER {NICK} 0 * :AnyaBot")
+    return sock
 
 def main():
     sock = connect()
 
+    slap_replies = [
+        "Hey! calme-toi 😂",
+        "Ouch! t’es rough toi 😅",
+        "Tabarnak! 😂",
+        "Aïe! esti que tu frappes fort 😆"
+    ]
+
     while True:
         try:
             data = sock.recv(4096).decode("utf-8", errors="ignore")
-            if not data:
-                print("Disconnected, reconnecting...")
-                sock = connect()
-                continue
 
             for line in data.split("\n"):
                 line = line.strip()
-                print("<<", line)
+                if not line:
+                    continue
 
-                # Ping/Pong
+                print(line)
+
                 if line.startswith("PING"):
                     send(sock, "PONG " + line.split()[1])
 
-                # Join channel when connected
                 if " 001 " in line:
-                    send(sock, f"JOIN {CHANNEL}")
+                    for chan in CHANNELS:
+                        send(sock, f"JOIN {chan}")
 
-                # Simple commands
                 if "PRIVMSG" in line:
                     parts = line.split(":", 2)
                     if len(parts) < 3:
                         continue
-                    msg = parts[2].strip()
 
-                    if msg.lower() == "!anya":
-                        send(sock, f"PRIVMSG {CHANNEL} :Привет! Я Аня 💖")
+                    # Le channel d'origine est le 3e mot: "nick!user@host PRIVMSG #channel"
+                    target = parts[1].split()[2]
+                    # Ignore les messages prives (target = notre nick, pas un #channel)
+                    if not target.startswith("#"):
+                        continue
 
-                    if msg.lower() == "!ping":
-                        send(sock, f"PRIVMSG {CHANNEL} :pong!")
+                    msg = parts[2].strip().lower()
+                    nick = line.split("!")[0].replace(":", "")
+
+                    log_message(nick, msg)
+
+                    if anti_flood(nick):
+                        continue
+
+                    if "anya" in msg and len(msg) < 120:
+                        send(sock, f"PRIVMSG {target} :{nick}: oui je suis là 💜")
+
+                    if msg.startswith("allo anya") or msg.startswith("salut anya"):
+                        send(sock, f"PRIVMSG {target} :Allo {nick} 😊")
+
+                    if "slaps anya" in msg or "slap anya" in msg:
+                        send(sock, f"PRIVMSG {target} :{random.choice(slap_replies)}")
+
+                    if nick == "alxd" and "anya" in msg:
+                        send(sock, f"PRIVMSG {target} :Oui {nick}, je t’écoute 💜")
+
+                    if msg == "!anya":
+                        send(sock, f"PRIVMSG {target} :Привет! Я Аня 💖")
+
+                    if msg == "!ping":
+                        send(sock, f"PRIVMSG {target} :pong!")
 
         except Exception as e:
             print("Error:", e)
