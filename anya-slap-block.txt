@@ -1,0 +1,12 @@
+# --- Réaction au slap (version #montreal) ---
+import random
+
+slap_replies = [
+    "Hey! calme-toi 😂",
+    "Ouch! t’es rough toi 😅",
+    "Tabarnak! 😂",
+    "Aïe! esti que tu frappes fort 😆"
+]
+
+if "slaps anya" in msg or "slap anya" in msg:
+    send(sock, f"PRIVMSG {CHANNEL} :{random.choice(slap_replies)}")

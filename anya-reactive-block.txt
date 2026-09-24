@@ -1,0 +1,20 @@
+# --- Bloc à insérer dans bot.py, dans on_pubmsg() ---
+
+msg = event.arguments[0].lower()
+nick = event.source.nick
+
+# Réponse quand quelqu'un dit "anya"
+if "anya" in msg and len(msg) < 120:
+    connection.privmsg(event.target, f"{nick}: oui je suis là 💜")
+
+# Réponse à "allo anya"
+if msg.startswith("allo anya") or msg.startswith("salut anya"):
+    connection.privmsg(event.target, f"Allo {nick} 😊")
+
+# Réaction au slap
+if "slaps anya" in msg or "slap anya" in msg:
+    connection.privmsg(event.target, "Aïe 😳 sois douce un peu…")
+
+# Priorité à alxd
+if nick == "alxd" and "anya" in msg:
+    connection.privmsg(event.target, f"Oui {nick}, je t’écoute 💜")

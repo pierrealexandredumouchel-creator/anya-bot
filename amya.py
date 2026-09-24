@@ -119,7 +119,7 @@ def main():
                     send(sock, f"PRIVMSG {CHANNELS[0]} :{get_fete()}")
 
                 # Personnalité russe cute / sarcasme
-                elif msg == "!cute":
+                #elif msg == "!cute":
                     send(sock, f"PRIVMSG {CHANNELS[0]} :{anya_cute()}")
 
                 elif msg == "!sarcasme":
