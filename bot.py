@@ -3,8 +3,9 @@ import time
 import sqlite3
 import random
 
-SERVER = "irc.undernet.org"
+SERVER = "irc6.undernet.org"
 PORT = 6667
+BINDHOST = "2001:470:b2af::6"
 NICK = "Anya"
 CHANNELS = ["#montreal", "#kodi"]
 
@@ -65,11 +66,20 @@ def send(sock, msg):
     sock.send((msg + "\r\n").encode("utf-8"))
 
 def connect():
-    sock = socket.socket()
+    family = socket.AF_INET6 if ":" in BINDHOST else socket.AF_INET
+
+    sock = socket.socket(family, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    sock.bind((BINDHOST, 0))
+
+    print(f"Connecting to {SERVER}:{PORT} from {BINDHOST}...")
     sock.connect((SERVER, PORT))
+
     send(sock, f"NICK {NICK}")
     send(sock, f"USER {NICK} 0 * :AnyaBot")
+
     return sock
+
 
 def main():
     sock = connect()
@@ -83,7 +93,12 @@ def main():
 
     while True:
         try:
-            data = sock.recv(4096).decode("utf-8", errors="ignore")
+            raw = sock.recv(4096)
+
+            if not raw:
+                raise ConnectionError("IRC server closed the connection")
+
+            data = raw.decode("utf-8", errors="ignore")
 
             for line in data.split("\n"):
                 line = line.strip()
