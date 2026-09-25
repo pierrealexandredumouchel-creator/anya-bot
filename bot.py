@@ -70,6 +70,7 @@ def connect():
 
     sock = socket.socket(family, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    sock.settimeout(300)
     sock.bind((BINDHOST, 0))
 
     print(f"Connecting to {SERVER}:{PORT} from {BINDHOST}...")
