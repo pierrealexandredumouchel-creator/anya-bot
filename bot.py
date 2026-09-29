@@ -8,6 +8,8 @@ PORT = 6667
 BINDHOST = "2001:470:b2af::6"
 NICK = "Anya"
 CHANNELS = ["#montreal", "#kodi"]
+XLOGIN_ACCOUNT = "anya"
+CHANNEL_PASSWORD = "yXZdHZPQ"
 
 # --- DB SETUP ---
 db = sqlite3.connect("anya.db", check_same_thread=False)
@@ -112,6 +114,11 @@ def main():
                     send(sock, "PONG " + line.split()[1])
 
                 if " 001 " in line:
+                    if CHANNEL_PASSWORD:
+                        send(sock, f"PRIVMSG x@channels.undernet.org :LOGIN {XLOGIN_ACCOUNT} {CHANNEL_PASSWORD}")
+                        time.sleep(2)
+                        send(sock, f"MODE {NICK} +x")
+                        time.sleep(1)
                     for chan in CHANNELS:
                         send(sock, f"JOIN {chan}")
 
@@ -145,6 +152,19 @@ def main():
 
                     if nick == "alxd" and "anya" in msg:
                         send(sock, f"PRIVMSG {target} :Oui {nick}, je t’écoute 💜")
+
+                    if nick == "alxd" and msg.startswith("!anya join "):
+                        chan = msg.split(" ", 2)[2].strip()
+                        send(sock, f"JOIN {chan}")
+                        send(sock, f"PRIVMSG {target} :Je rejoins {chan} 💜")
+
+                    elif nick == "alxd" and msg.startswith("!anya part "):
+                        chan = msg.split(" ", 2)[2].strip()
+                        send(sock, f"PART {chan}")
+                        send(sock, f"PRIVMSG {target} :Je quitte {chan} 💜")
+
+                    elif nick == "alxd" and msg == "!anya channels":
+                        send(sock, f"PRIVMSG {target} :Canaux connus: {', '.join(CHANNELS)} 💜")
 
                     if msg == "!anya":
                         send(sock, f"PRIVMSG {target} :Привет! Я Аня 💖")
